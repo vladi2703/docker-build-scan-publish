@@ -1,23 +1,31 @@
-name: 'Hello World'
-description: 'Greet someone'
+name: 'Build, Scan, and Push Docker Image'
+description: 'Builds, scans, and pushes a Docker image'
 inputs:
-  who-to-greet:  # id of input
-    description: 'Who to greet'
-    required: true
-    default: 'World'
-outputs:
-  random-number:
-    description: "Random number"
-    value: ${{ steps.random-number-generator.outputs.random-number }}
+   dockerfile:
+     description: 'Path to the Dockerfile'
+     required: true
+   image-name:
+     description: 'Name of the Docker image'
+     required: true
+   dockerhub-username:
+     description: 'DockerHub username'
+     required: true
+   dockerhub-token:
+     description: 'DockerHub token'
+     required: true
+   github-sha:
+     description: 'GitHub SHA for tagging'
+     required: true
+
 runs:
   using: "composite"
   steps:
-    - run: echo Hello ${{ inputs.who-to-greet }}.
+    - run: docker build -f ${{ inputs.dockerfile }} -t ${{ inputs.image-name }}-${{ inputs.github-sha }} .
       shell: bash
-    - id: random-number-generator
-      run: echo "random-number=$(echo $RANDOM)" >> $GITHUB_OUTPUT
+    - run: docker push ${{ inputs.image-name }}-${{ inputs.github-sha }}
       shell: bash
-    - run: echo "${{ github.action_path }}" >> $GITHUB_PATH
-      shell: bash
-    - run: goodbye.sh
-      shell: bash
+    - uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: '${{ inputs.image-name }}-${{ inputs.github-sha }}'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
