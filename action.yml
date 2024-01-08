@@ -27,5 +27,13 @@ runs:
         image-ref: '${{ inputs.image-name }}-${{ inputs.github-sha }}'
         format: 'sarif'
         output: 'trivy-results.sarif'
+        exit-code: 0
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+    - uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif' 
     - run: docker push ${{ inputs.image-name }}-${{ inputs.github-sha }}
       shell: bash
